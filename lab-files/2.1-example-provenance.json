@@ -1,0 +1,53 @@
+{
+  "_type": "https://in-toto.io/Statement/v0.1",
+  "predicateType": "https://slsa.dev/provenance/v0.2",
+  "subject": [
+    {
+      "name": "supply-chain-app:latest",
+      "digest": {
+        "sha256": "e969b0df30c6663050b8497fe047159a69cf271fa7b3026e1e1c48c41f8d5283"
+      }
+    }
+  ],
+  "predicate": {
+    "builder": {
+      "id": "fa2gq58@CDDEINGMC007501"
+    },
+    "buildType": "https://github.com/slsa-framework/slsa/blob/main/docs/build-types.md#manual",
+    "invocation": {
+      "configSource": {
+        "uri": "git@github.com:thi-ics/supply-chain-lab.git",
+        "digest": {
+          "sha1": "036e81b29b12864c5bbd5aa3a371a13103fd2d2d"
+        },
+        "entryPoint": "Dockerfile"
+      },
+      "parameters": {
+        "dockerfile": "src/docker/Dockerfile",
+        "context": "src/"
+      },
+      "environment": {
+        "workdir": "/Users/fa2gq58/code/thi/supply-chain",
+        "docker_version": "28.3.3"
+      }
+    },
+    "metadata": {
+      "buildStartedOn": "2025-11-12T19:58:28Z",
+      "buildFinishedOn": "2025-11-12T19:58:28Z",
+      "completeness": {
+        "parameters": true,
+        "environment": false,
+        "materials": false
+      },
+      "reproducible": false
+    },
+    "materials": [
+      {
+        "uri": "git@github.com:thi-ics/supply-chain-lab.git",
+        "digest": {
+          "sha1": "036e81b29b12864c5bbd5aa3a371a13103fd2d2d"
+        }
+      }
+    ]
+  }
+}

@@ -1,0 +1,6 @@
+Using default tag: latest
+The push refers to repository [ttl.sh/supply-chain-app-student]
+5f70bf18a086: Pushed 
+d6e46aa2470d: Pushed 
+c2adabaecedb: Pushed 
+latest: digest: sha256:3b2f8c3e1d4a5c6b7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d size: 1234
