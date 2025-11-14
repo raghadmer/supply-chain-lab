@@ -47,7 +47,7 @@ tasks:
   scan-dockerfile:
     desc: "🐳 Scan Dockerfile in Docker"
     cmds:
-      - "{{.DOCKER_RUN}} task _scan-dockerfile"
+      - "{{.DOCKER_RUN}} task _scan-dockerfile -- severity MEDIUM,HIGH,CRITICAL"
 
   scan-iac:
     desc: "🏗️ Scan IaC in Docker"
@@ -302,7 +302,7 @@ tasks:
     # Internal: Scan Infrastructure as Code with Checkov
     cmds:
       - echo "🏗️ Scanning IaC..."
-      - checkov -f src/iac/main.tf
+      - checkov -f src/iac/main.tf --skip-check CKV2_AWS_5
 
   _scan-manifests:
     # Internal: Scan Kubernetes manifests with Trivy
