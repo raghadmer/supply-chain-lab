@@ -156,10 +156,51 @@ Scanning alone is **not sufficient**. It must be combined with:
 4. **Build Security**: Secure build environments and provenance
 5. **Runtime Protection**: Continuous monitoring and policies
 
+### Five Vulnerability Categories in Lab Phase 1
+
+**1. Source Code Analysis (SAST)**
+- **What**: Static Application Security Testing
+- **Detects**: Hardcoded secrets, SQL injection, XSS vulnerabilities
+- **Tool**: Semgrep, Trivy fs
+- **Example**: Hardcoded API token in Python code
+
+**2. Dependency Scanning (SCA)**
+- **What**: Software Composition Analysis
+- **Detects**: Known CVEs in third-party libraries
+- **Tool**: Trivy, Syft
+- **Example**: Flask 2.0.1 → CVE-2023-30861
+
+**3. Dockerfile Scanning**
+- **What**: Container build configuration analysis
+- **Detects**: Running as root, missing healthchecks, insecure practices
+- **Tool**: Trivy config
+
+**4. Infrastructure as Code (IaC) Scanning**
+- **What**: Cloud infrastructure misconfigurations
+- **Detects**: Public S3 buckets, open security groups, SSH from 0.0.0.0/0
+- **Tool**: Checkov, Trivy config
+- **Example**: S3 bucket with public access enabled
+
+**5. Container Image Scanning**
+- **What**: Complete image analysis (OS + app dependencies)
+- **Detects**: Vulnerabilities in base image layers and packages
+- **Tool**: Trivy image
+- **Example**: python:3.8 base image → 907 HIGH/CRITICAL vulnerabilities
+
+### Vulnerability Severity Levels
+
+Scanners classify findings by severity:
+
+- **CRITICAL**: Immediate action required (remote code execution, privilege escalation)
+- **HIGH**: Serious security risk (data exposure, authentication bypass)
+- **MEDIUM**: Moderate risk (information disclosure, denial of service)
+- **LOW**: Minor issues (missing best practices, hardening opportunities)
+
 ### Scanning Tools in This Lab
 
 - **Trivy**: Container and filesystem vulnerability scanner
 - **Semgrep**: Static analysis for code patterns
+- **Checkov**: Infrastructure as Code security scanner
 - **Syft**: Software Bill of Materials (SBOM) generation
 
 ### Limitations of Scanning
@@ -185,9 +226,9 @@ Scanning alone is **not sufficient**. It must be combined with:
 
 **Official Specification**: https://slsa.dev
 
-### SLSA Levels (0-4)
+### SLSA Levels (0-3)
 
-SLSA defines **five levels** of supply chain maturity:
+SLSA defines **four levels** of supply chain maturity:
 
 #### Level 0: No Guarantees
 - **Status**: No supply chain security measures
@@ -208,7 +249,7 @@ SLSA defines **five levels** of supply chain maturity:
   - Build service generates provenance (not the build script)
 - **Protection**: Provenance can't be forged or tampered with
 - **Example**: CI/CD pipeline with signed attestations
-- **🎯 This lab achieves Level 2**
+- **🎯 This lab demonstrates Level 2 principles**
 
 #### Level 3: Hardened Builds
 - **Requirements**:
@@ -218,17 +259,11 @@ SLSA defines **five levels** of supply chain maturity:
 - **Protection**: Prevents attacks on the build platform
 - **Example**: Isolated build environments, hermetic builds
 
-#### Level 4: Two-Party Review
-- **Requirements**:
-  - All Level 3 requirements
-  - All changes require two-person approval
-  - Changes to dependencies are reviewed
-- **Protection**: Prevents single compromised developer from backdooring code
-- **Example**: Branch protection with required reviews, signed commits enforced
-
 ### SLSA Provenance
 
-**Provenance** is attestation metadata that describes how an artifact was built:
+**Provenance** is attestation metadata that describes how an artifact was built.
+
+**🔬 Lab Connection**: In Phase 2, you'll generate provenance using Docker BuildKit, which captures complete build metadata automatically.
 
 **Key Information**:
 - **Builder Identity**: Who/what performed the build
@@ -266,7 +301,7 @@ SLSA defines **five levels** of supply chain maturity:
 ### Why SLSA Matters
 
 - **Industry Standard**: Adopted by Google, GitHub, Linux Foundation
-- **Measurable Security**: Clear progression from Level 0 to Level 4
+- **Measurable Security**: Clear progression from Level 0 to Level 3
 - **Supply Chain Transparency**: Build process becomes auditable
 - **Attack Prevention**: Each level closes specific attack vectors
 
@@ -301,7 +336,7 @@ SLSA defines **five levels** of supply chain maturity:
 
 ### in-toto Attestation Format
 
-**Standard Structure**:
+**Standard Structure** (in-toto Statement):
 ```json
 {
   "_type": "https://in-toto.io/Statement/v0.1",
@@ -323,6 +358,27 @@ SLSA defines **five levels** of supply chain maturity:
 - **Subject**: What artifact this attestation describes
 - **Predicate Type**: What kind of attestation this is
 - **Predicate**: The actual attestation content
+
+### DSSE Envelope (Signed Attestations)
+
+When attestations are signed, they're wrapped in a **DSSE (Dead Simple Signing Envelope)**:
+
+```json
+{
+  "payloadType": "application/vnd.in-toto+json",
+  "payload": "<base64-encoded-statement>",
+  "signatures": [
+    {
+      "sig": "<base64-signature>",
+      "keyid": "..."
+    }
+  ]
+}
+```
+
+**🔬 Lab Connection**: In Phase 2, you'll see both formats:
+- `out/provenance.json` - Full DSSE envelope from BuildKit
+- `attestations/provenance.json` - Extracted predicate (for Cosign signing in Phase 3)
 
 ### Predicate Types
 
@@ -429,6 +485,31 @@ cosign verify-attestation --type <type> <image>
 
 **OCI Artifact Storage**: Signatures and attestations are stored as OCI artifacts alongside the container image in the registry.
 
+### OCI 1.1 and the Referrers API
+
+**OCI 1.1** introduces native support for attaching artifacts (signatures, attestations) to container images.
+
+**Key Features**:
+- **Referrers API**: Standard way to query artifacts referencing an image
+- **Native Storage**: No tag-based schemes or legacy workarounds needed
+- **Clean Tree Structure**: Artifacts form a tree linked to the subject image
+
+**Cosign v3 Behavior**:
+- **Writing**: Uses OCI 1.1 format by default when signing/attesting
+- **Reading**: Requires `--experimental-oci11` flag (temporary during migration)
+- **Future**: Flag will become default in Cosign v4
+
+**🔬 Lab Connection**: In Phase 3, you'll use `--experimental-oci11` flag with commands like:
+```bash
+cosign tree --experimental-oci11 $IMAGE
+cosign verify --experimental-oci11 $IMAGE
+```
+
+**Why It Matters**:
+- Better garbage collection (delete image → delete all related artifacts)
+- Standardized across registries
+- Improved performance
+
 ### Fulcio: Keyless Certificate Authority
 
 **Fulcio** issues short-lived code-signing certificates based on OIDC identity.
@@ -516,6 +597,27 @@ rekor-cli get --uuid <entry-uuid>
    - Verifies signature matches artifact
 
 **Key Advantage**: No long-lived keys to manage, compromise, or lose.
+
+### ttl.sh: Ephemeral Container Registry
+
+**ttl.sh** is a free, ephemeral container registry used in this lab for testing.
+
+**Key Features**:
+- **No Authentication**: Push/pull without credentials
+- **Time-To-Live**: Images auto-delete after specified time (e.g., `:3h` = 3 hours)
+- **OCI 1.1 Support**: Supports referrers API for signatures/attestations
+- **Perfect for Testing**: No account needed, automatic cleanup
+
+**🔬 Lab Connection**: In Phase 3, you'll push to ttl.sh:
+```bash
+docker tag supply-chain-app:latest ttl.sh/supply-chain-app-$(hostname):3h
+docker push ttl.sh/supply-chain-app-$(hostname):3h
+```
+
+**Why Use ttl.sh?**
+- No Docker Hub account required
+- Automatic cleanup (no manual deletion)
+- OCI 1.1 support for modern Cosign features
 
 ---
 
@@ -616,7 +718,9 @@ cosign verify-attestation \
 
 ---
 
-## 8. CI/CD Automation
+## 8. CI/CD Automation (Advanced Topic)
+
+**Note**: This section covers advanced concepts not included in the hands-on lab phases. It's provided for reference and future learning.
 
 ### GitHub OIDC
 
@@ -774,17 +878,17 @@ permissions:
 
 ## Next Steps
 
-Now that you understand the theoretical foundation, proceed to:
-
-**[LAB.md](LAB.md)** - Hands-on exercises implementing these concepts
+Now that you understand the theoretical foundation, proceed to the hands-on lab:
 
 **Lab Phases**:
-- Phase 0: Secure Source Setup
-- Phase 1: Security Scanning
-- Phase 2: Attestation Generation
-- Phase 3: Keyless Signing
-- Phase 4: Verification & Transparency
-- Phase 5: CI/CD Automation (Bonus)
+- **Phase 1: Security Scanning** - Detect and fix vulnerabilities across 5 categories
+- **Phase 2: Attestations & Provenance** - Generate SLSA provenance, SBOM, and vulnerability attestations
+- **Phase 3: Keyless Signing & Transparency** - Sign artifacts and explore Rekor transparency log
+
+**Additional Topics** (not covered in basic lab):
+- CI/CD Automation with GitHub Actions
+- Policy enforcement with admission controllers
+- Advanced verification workflows
 
 ---
 

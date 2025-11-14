@@ -107,7 +107,7 @@ task exec -- rekor-cli get --uuid $UUID --format json | jq -r '.Body.DSSEObj.sig
 **Learning Goals:**
 - Detect vulnerabilities across 5 categories
 - Practice remediation techniques
-- Build foundation for SLSA Level 1
+- Build foundation for supply chain security
 
 **📖 Theory Reference:** See CONCEPTS.md - Section 3: Security Scanning
 
